@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Multi-utilisateurs</title>
+    <style>
+         body {
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        background-image: url('https://images3.alphacoders.com/748/thumb-1920-748367.jpg');
+                        background-size: cover;
+                        background-attachment: fixed;
+                        color: #f5f5f5;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        animation: backgroundAnimation 30s ease-in-out infinite;
+             }
+            
+        #chat-box {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+            background-color: #fff;
+        }
+        #message-input {
+            width: calc(100% - 90px);
+            padding: 10px;
+        }
+        #send-button {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 5px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Chat Multi-utilisateurs</h1>
+    <div id="chat-box"></div>
+
+    <input type="text" id="message-input" placeholder="Écrivez un message..." />
+    <button id="send-button">Envoyer</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Connexion au serveur via Socket.io
+        const socket = io();
+
+        // Récupérer les éléments HTML
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Fonction pour afficher les messages
+        function displayMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.textContent = message;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // Faire défiler vers le bas
+        }
+
+        // Envoi du message au backend via Socket.io
+        sendButton.addEventListener('click', () => {
+            const message = messageInput.value.trim();
+            if (message) {
+                socket.emit('message', message); // Envoi du message
+                messageInput.value = ''; // Efface le champ de saisie
+            }
+        });
+
+        // Réception des messages du backend via Socket.io
+        socket.on('message', (message) => {
+            displayMessage(message); // Affiche le message reçu
+        });
+
+        // Afficher un message lorsque l'utilisateur se connecte
+        window.onload = () => {
+            displayMessage('Bienvenue sur le chat !');
+        };
+    </script>
+
+</body>
+</html>
