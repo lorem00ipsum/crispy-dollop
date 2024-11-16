@@ -6,32 +6,45 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: '*', // Permet à n'importe quelle origine de se connecter
+        origin: '*',
         methods: ['GET', 'POST']
     }
 });
 
-// Servir les fichiers frontend depuis le dossier public
+// Stockage des pseudos déjà pris
+let takenNicknames = new Set();
+
 app.use(express.static('public'));
 
-// Lorsqu'un utilisateur se connecte
 io.on('connection', (socket) => {
     console.log('Un utilisateur est connecté');
     
-    // Lorsqu'un message est reçu
-    socket.on('message', (message) => {
-        console.log('Message reçu:', message);
-        // Diffuse le message à tous les autres utilisateurs
-        io.emit('message', message);
+    // Gérer la demande de pseudo
+    socket.on('set-nickname', (nickname) => {
+        if (takenNicknames.has(nickname)) {
+            // Si le pseudo est déjà pris, renvoyer une erreur
+            socket.emit('nickname-taken');
+        } else {
+            // Sinon, enregistrer le pseudo et confirmer
+            takenNicknames.add(nickname);
+            socket.emit('nickname-set', nickname);
+            console.log(`L'utilisateur ${nickname} a choisi ce pseudo`);
+        }
     });
 
-    // Lorsqu'un utilisateur se déconnecte
+    // Gérer l'envoi des messages
+    socket.on('message', (data) => {
+        console.log(`${data.user}: ${data.message}`);
+        io.emit('message', data); // Diffuser le message à tous les utilisateurs
+    });
+
+    // Gérer la déconnexion
     socket.on('disconnect', () => {
+        takenNicknames.delete(socket.nickname); // Supprimer le pseudo à la déconnexion
         console.log('Un utilisateur s\'est déconnecté');
     });
 });
 
-// Lancer le serveur sur un port
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Serveur en ligne sur http://localhost:${PORT}`);
