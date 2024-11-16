@@ -5,21 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Multi-utilisateurs</title>
     <style>
-         body {
-                        font-family: Arial, sans-serif;
-                        margin: 0;
-                        padding: 0;
-                        background-image: url('jujutsu-kaisen-3840x2160-19746.jpg');
-                        background-size: cover;
-                        background-attachment: fixed;
-                        color: #f5f5f5;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        min-height: 100vh;
-                        animation: backgroundAnimation 30s ease-in-out infinite;
+        body { font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              background-image: url('jujutsu-kaisen-3840x2160-19746.jpg');
+              background-size: cover; background-attachment: fixed;
+              color: #f5f5f5; 
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              animation: backgroundAnimation 30s ease-in-out infinite; 
              }
-            
         #chat-box {
             width: 100%;
             height: 400px;
@@ -39,56 +36,86 @@
         .message {
             margin-bottom: 10px;
             padding: 5px;
-            background-color: #6A89A7;
+            background-color: #e0e0e0;
             border-radius: 5px;
+        }
+        #nickname-section {
+            text-align: center;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
 
     <h1>Chat Multi-utilisateurs</h1>
-    <div id="chat-box"></div>
+    
+    <!-- Section de choix du pseudo -->
+    <div id="nickname-section">
+        <input type="text" id="nickname-input" placeholder="Choisissez votre pseudo" />
+        <button id="set-nickname-button">Définir le pseudo</button>
+        <p id="error-message" style="color: red; display: none;">Ce pseudo est déjà pris. Essayez un autre.</p>
+    </div>
 
-    <input type="text" id="message-input" placeholder="Écrivez un message..." />
-    <button id="send-button">Envoyer</button>
+    <!-- Chat et champ de saisie de message -->
+    <div id="chat-box" style="display: none;"></div>
+    <input type="text" id="message-input" placeholder="Écrivez un message..." style="display: none;" />
+    <button id="send-button" style="display: none;">Envoyer</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Connexion au serveur via Socket.io
         const socket = io();
 
-        // Récupérer les éléments HTML
+        const nicknameInput = document.getElementById('nickname-input');
+        const setNicknameButton = document.getElementById('set-nickname-button');
+        const errorMessage = document.getElementById('error-message');
         const chatBox = document.getElementById('chat-box');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
+        let userNickname = '';
 
-        // Fonction pour afficher les messages
+        // Fonction pour afficher les messages dans le chat
         function displayMessage(message) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message');
             messageDiv.textContent = message;
             chatBox.appendChild(messageDiv);
-            chatBox.scrollTop = chatBox.scrollHeight; // Faire défiler vers le bas
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Envoi du message au backend via Socket.io
+        // Gérer l'événement de clic pour définir un pseudo
+        setNicknameButton.addEventListener('click', () => {
+            const nickname = nicknameInput.value.trim();
+            if (nickname) {
+                socket.emit('set-nickname', nickname);
+            }
+        });
+
+        // Gérer l'envoi de message
         sendButton.addEventListener('click', () => {
             const message = messageInput.value.trim();
             if (message) {
-                socket.emit('message', message); // Envoi du message
+                socket.emit('message', { user: userNickname, message: message });
                 messageInput.value = ''; // Efface le champ de saisie
             }
         });
 
-        // Réception des messages du backend via Socket.io
-        socket.on('message', (message) => {
-            displayMessage(message); // Affiche le message reçu
+        // Réception du message du backend
+        socket.on('message', (data) => {
+            displayMessage(`${data.user}: ${data.message}`);
         });
 
-        // Afficher un message lorsque l'utilisateur se connecte
-        window.onload = () => {
-            displayMessage('Bienvenue sur le chat !');
-        };
+        // Gestion de la réponse concernant le pseudo
+        socket.on('nickname-taken', () => {
+            errorMessage.style.display = 'block'; // Affiche un message d'erreur si le pseudo est déjà pris
+        });
+
+        socket.on('nickname-set', (nickname) => {
+            userNickname = nickname;
+            document.getElementById('nickname-section').style.display = 'none';
+            chatBox.style.display = 'block';
+            messageInput.style.display = 'block';
+            sendButton.style.display = 'block';
+        });
     </script>
 
 </body>
